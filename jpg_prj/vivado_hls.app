@@ -10,7 +10,8 @@
         <SimFlow name="csim" clean="true" csimMode="0" lastCsimMode="0" compiler="true"/>
     </Simulation>
     <solutions xmlns="">
-        <solution name="01_no_opt" status="active"/>
+        <solution name="01_no_opt" status="inactive"/>
+        <solution name="99_winnder" status="active"/>
     </solutions>
 </project>
 
