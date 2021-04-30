@@ -43,13 +43,6 @@ inline void PrintSOF(const unsigned char *stream)
 							nr_components,
 							nr_components_to_string[nr_components],
 							precision);
-
-//	dprintf("> SOF marker\n");
-//	dprintf("Size:%dx%d nr_components:%d (%s)  precision:%d\n",
-//							width, height,
-//							nr_components,
-//							nr_components_to_string[nr_components],
-//							precision);
 }
 
 void GenHuffCodes( int num_codes, stBlock* arr, unsigned char* huffVal )
@@ -79,16 +72,10 @@ void GenHuffCodes( int num_codes, stBlock* arr, unsigned char* huffVal )
 /***************************************************************************/
 inline void BuildHuffmanTable(const unsigned char *bits, const unsigned char *stream, stHuffmanTable *HT, unsigned char* hufVal)
 {
-//	for (int j=1; j<=16; j++)
-//	{
-//		HT->m_length[j] = bits[j];
-//	}
-
 	// Work out the total number of codes
 	int numBlocks = 0;
 	for (int i=1; i<=16; i++)
 	{
-//		numBlocks += HT->m_length[i];
 		numBlocks += bits[i];
 	}
 	HT->m_numBlocks = numBlocks;
@@ -98,16 +85,15 @@ inline void BuildHuffmanTable(const unsigned char *bits, const unsigned char *st
 	int c=0;
 	for (int i=1; i<=16; i++)
 	{
-//		for (int j=0; j<HT->m_length[i]; j++)
 		for (int j=0; j<bits[i]; j++)
 		{
 			HT->m_blocks[c].length = i;
 			c++;
+			if (c>=1024) printf("out of block!\n");
 		}
 
 	}
 
-//	GenHuffCodes(HT->m_numBlocks, HT->m_blocks, HT->m_hufVal);
 	GenHuffCodes(HT->m_numBlocks, HT->m_blocks, hufVal);
 }
 
@@ -132,13 +118,11 @@ inline void BuildQuantizationTable(quantTable_t *qtable, const unsigned char *re
 /***************************************************************************/
 
 inline int ParseDQT(stJpegData *jdata, const unsigned char *stream, quantTable_t Q_tables[COMPONENTS][64])
-//inline int ParseDQT(stJpegData *jdata, const unsigned char *stream)
 {
 	int length, qi;
 //	float *table;
 
 	printf("> DQT marker\n");
-//	dprintf("> DQT marker\n");
 	length = BYTE_TO_WORD(stream) - 2;
 	stream += 2;	// Skip length
 
@@ -156,24 +140,13 @@ inline int ParseDQT(stJpegData *jdata, const unsigned char *stream, quantTable_t
 			// 8-bit (baseline) for 0 and  up to 16-bit for 1
 
 			printf("Error - 16 bits quantization table is not supported\n");
-//			dprintf("Error - 16 bits quantization table is not supported\n");
-			///DBG_HALT;
 		}
 
 		if (qindex>=4)
 		{
 			printf("Error - No more 4 quantization table is supported (got %d)\n", qi);
-//			dprintf("Error - No more 4 quantization table is supported (got %d)\n", qi);
-			///DBG_HALT;
 		}
 
-		// The quantization table is the next 64 bytes
-////		table = jdata->m_Q_tables[qindex];
-//		table = (float*)&Q_tables[qindex];
-
-		// the quantization tables are stored in zigzag format, so we
-		// use this functino to read them all in and de-zig zag them
-//		BuildQuantizationTable(table, stream);
 		BuildQuantizationTable((quantTable_t*)&Q_tables[qindex], stream);
 		stream += 64;
 		length -= 65;
@@ -203,13 +176,10 @@ inline int 	ParseSOS(stJpegData *jdata, unsigned char *stream)
 	unsigned int nr_components = stream[2];
 
 	printf("> SOS marker\n");
-//	dprintf("> SOS marker\n");
 
 	if (nr_components != 3)
 	{
 		printf("Error - We only support YCbCr image\n");
-//		dprintf("Error - We only support YCbCr image\n");
-		///DBG_HALT;
 	}
 
 
@@ -222,20 +192,14 @@ inline int 	ParseSOS(stJpegData *jdata, unsigned char *stream)
 		if ((table&0xf)>=4)
 		{
 			printf("Error - We do not support more than 2 AC Huffman table\n");
-//			dprintf("Error - We do not support more than 2 AC Huffman table\n");
-			///DBG_HALT;
+
 		}
 		if ((table>>4)>=4)
 		{
 			printf("Error - We do not support more than 2 DC Huffman table\n");
-//			dprintf("Error - We do not support more than 2 DC Huffman table\n");
-			///DBG_HALT;
 		}
 		printf("ComponentId:%d  tableAC:%d tableDC:%d\n", cid, table&0xf, table>>4);
-//		dprintf("ComponentId:%d  tableAC:%d tableDC:%d\n", cid, table&0xf, table>>4);
 
-//		printf("acTable\t\t%p\n",jdata->m_HTAC[table&0xf]);
-//		printf("acTable\taddress\t%p\n",&jdata->m_HTAC[table&0xf]);
 		printf("acTable\t\t%p\n",jdata->m_Huffman.m_HTAC[table&0xf]);
 		printf("acTable\taddress\t%p\n",&jdata->m_Huffman.m_HTAC[table&0xf]);
 
@@ -244,43 +208,19 @@ inline int 	ParseSOS(stJpegData *jdata, unsigned char *stream)
 		printf("table>>4\t%d\n",table>>4);
 
 
-//		jdata->m_component_info[cid].m_acTable = &jdata->m_HTAC[table&0xf];
 
 		jdata->m_component_info[cid].acTable_index = table&0xf;
 		jdata->m_component_info[cid].dcTable_index = table>>4;
 
-
-//		for(int cnt=0; cnt<HUFFMAN_TABLES; cnt++)
-//		{
-////			jdata->m_component_info[cid].m_acTable = 1;//jdata->m_HTAC[table&0xf][cnt];
-//		unsigned char	m_length[17];		// 17 values from jpg file,
-//											// k =1-16 ; L[k] indicates the number of Huffman codes of length k
-//		unsigned char	m_hufVal[257];		// 256 codes read in from the jpeg file
-//
-//		int				m_numBlocks;
-//		stBlock			m_blocks[1024];
-//		}
-//		jdata->m_component_info[cid].m_dcTable = &jdata->m_HTDC[table>>4];
 	}
 
-//	jdata->stream_index = 0;	// this will be the index of m_stream
 	jdata->m_Huffman.stream_index = 0;	// this will be the index of m_stream
 
 //	printf("stream size:%d\n\n",nr_components);
-////	for(unsigned int i=0; i<STREAM_SIZE; i++)
-//	for(unsigned int i=0; i<STREAM_SIZE/10; i++)
-//	{
-//		jdata->m_stream[i] = stream[i+3];
-//	}
-//	printf("stream size:%d\n\n",nr_components);
 	for(unsigned int i=0;i<STREAM_SIZE;i++)
 	{
-//		jdata->m_stream[i] = stream[i+3];
 		jdata->m_Huffman.m_stream[i] = stream[i+3];
 	}
-//	jdata->m_stream = stream+3;
-//	printf("jdata stream pointer addresss %p\n", jdata->m_stream);
-//	printf("jdata stream index %d\n", jdata->stream_index);
 	printf("jdata stream pointer addresss %p\n", jdata->m_Huffman.m_stream);
 	printf("jdata stream index %d\n", jdata->m_Huffman.stream_index);
 
@@ -329,43 +269,29 @@ inline int ParseDHT(stJpegData *jdata, unsigned char *stream)
 		if (count > 256)
 		{
 			printf("Error - No more than 1024 bytes is allowed to describe a huffman table");
-//			dprintf("Error - No more than 1024 bytes is allowed to describe a huffman table");
-			///DBG_HALT;
 		}
 		if ( (index &0xf) >= HUFFMAN_TABLES)
 		{
 			printf("Error - No mode than %d Huffman tables is supported\n", HUFFMAN_TABLES);
-//			dprintf("Error - No mode than %d Huffman tables is supported\n", HUFFMAN_TABLES);
-			///DBG_HALT;
 		}
 		printf("Huffman table %s n%d\n", (index&0xf0)?"AC":"DC", index&0xf);
 		printf("Length of the table: %d\n", count);
-//		dprintf("Huffman table %s n%d\n", (index&0xf0)?"AC":"DC", index&0xf);
-//		dprintf("Length of the table: %d\n", count);
 
 		if (index & 0xf0 )
 		{
-////			unsigned char* huffval = jdata->m_HTAC[index&0xf].m_hufVal;
-//			unsigned char* huffval = jdata->m_Huffman.m_HTAC[index&0xf].m_hufVal;
-//			unsigned char* huffval ; //= jdata->m_Huffman.m_HTAC[index&0xf].m_hufVal;
 			unsigned char huffval[HUFF_VALUES_RANGE] ; //= jdata->m_Huffman.m_HTAC[index&0xf].m_hufVal;
 			for (i = 0; i < count; i++)
 				huffval[i] = *stream++;
 
-////			BuildHuffmanTable(huff_bits, stream, &jdata->m_HTAC[index&0xf]); // AC
-//			BuildHuffmanTable(huff_bits, stream, &jdata->m_Huffman.m_HTAC[index&0xf]); // AC
+
 			BuildHuffmanTable(huff_bits, stream, &jdata->m_Huffman.m_HTAC[index&0xf], huffval); // AC
 		}
 		else
 		{
-////			unsigned char* huffval = jdata->m_HTDC[index&0xf].m_hufVal;
-//			unsigned char* huffval = jdata->m_Huffman.m_HTDC[index&0xf].m_hufVal;
-			unsigned char huffval[HUFF_VALUES_RANGE]; // = jdata->m_Huffman.m_HTDC[index&0xf].m_hufVal;
+			unsigned char huffval[HUFF_VALUES_RANGE];
 			for (i = 0; i < count; i++)
 				huffval[i] = *stream++;
 
-////			BuildHuffmanTable(huff_bits, stream, &jdata->m_HTDC[index&0xf]); // DC
-//			BuildHuffmanTable(huff_bits, stream, &jdata->m_Huffman.m_HTDC[index&0xf]); // DC
 			BuildHuffmanTable(huff_bits, stream, &jdata->m_Huffman.m_HTDC[index&0xf], huffval); // DC
 		}
 
@@ -417,10 +343,9 @@ int ParseSOF(stJpegData *jdata, stImageInfo *jinfo, const unsigned char *stream,
 		stComponent *c = &jdata->m_component_info[cid];
 		jinfo->m_vFactor[cid] = (unsigned char) sampling_factor&0xf;
 		jinfo->m_hFactor[cid] = (unsigned char) sampling_factor>>4;
-//		c->m_qTable = jdata->m_Q_tables[Q_table];
+
 		for (int cnt=0; cnt<64; cnt++)
 		{
-//			c->m_qTable[cnt] = jdata->m_Q_tables[Q_table][cnt];
 			c->m_qTable[cnt] = Q_tables[Q_table][cnt];
 		}
 
@@ -435,8 +360,6 @@ int ParseSOF(stJpegData *jdata, stImageInfo *jinfo, const unsigned char *stream,
 //				c->m_hFactor,
 //				Q_table );
 	}
-//	jdata->m_width = width;
-//	jdata->m_height = height;
 	jinfo->m_width = width;
 	jinfo->m_height = height;
 
@@ -445,7 +368,6 @@ int ParseSOF(stJpegData *jdata, stImageInfo *jinfo, const unsigned char *stream,
 
 /***************************************************************************/
 
-//inline int ParseJFIF(stJpegData *jdata, const unsigned char *stream)
 inline int ParseJFIF(stJpegData *jdata, stImageInfo *jinfo, unsigned char *stream)
 {
 	int chuck_len;
@@ -477,7 +399,6 @@ inline int ParseJFIF(stJpegData *jdata, stImageInfo *jinfo, unsigned char *strea
 			case SOF:
 			{
 				if (ParseSOF(jdata, jinfo, stream, quant_tables) < 0)
-//				if (ParseSOF(jdata, stream) < 0)
 					return -1;
 			}
 			break;
@@ -485,7 +406,6 @@ inline int ParseJFIF(stJpegData *jdata, stImageInfo *jinfo, unsigned char *strea
 			case DQT:
 			{
 				if (ParseDQT(jdata, stream, quant_tables) < 0)
-//				if (ParseDQT(jdata, stream) < 0)
 					return -1;
 			}
 			break;
@@ -522,21 +442,18 @@ inline int ParseJFIF(stJpegData *jdata, stImageInfo *jinfo, unsigned char *strea
 			{
 				jdata->m_Huffman.m_restart_interval = BYTE_TO_WORD(stream);
 				printf("DRI - Restart_marker\n");
-//				dprintf("DRI - Restart_marker\n");
 			}
 			break;
 
 			case APP0:
 			{
 				printf("APP0 Chunk ('txt' information) skipping\n");
-//				dprintf("APP0 Chunk ('txt' information) skipping\n");
 			}
 			break;
 
 			default:
 			{
 				printf("ERROR> Unknown marker %2.2x\n", marker);
-//				dprintf("ERROR> Unknown marker %2.2x\n", marker);
 			}
 			break;
 		}
@@ -547,22 +464,17 @@ inline int ParseJFIF(stJpegData *jdata, stImageInfo *jinfo, unsigned char *strea
 	if (!dht_marker_found)
 	{
 		printf("ERROR> No Huffman table loaded\n");
-//		dprintf("ERROR> No Huffman table loaded\n");
-		///DBG_HALT;
 	}
 
 	return 0;
 
 	bogus_jpeg_format:
 	printf("ERROR> Bogus jpeg format\n");
-//	dprintf("ERROR> Bogus jpeg format\n");
-	///DBG_HALT;
 	return -1;
 }
 
 /***************************************************************************/
 
-//inline int JpegParseHeader(stJpegData *jdata, const unsigned char *buf, unsigned int size)
 inline int JpegParseHeader(stJpegData *jdata, stImageInfo *jinfo, unsigned char *buf, unsigned int size)
 {
 	// Identify the file
@@ -570,21 +482,15 @@ inline int JpegParseHeader(stJpegData *jdata, stImageInfo *jinfo, unsigned char 
 	{
 //		dprintf("Not a JPG file ?\n");
 		printf("Not a JPG file ?\n");
-		///DBG_HALT;
 		return -1;
 	}
 
-//	const unsigned char* startStream = buf+2;
 	unsigned char* startStream = buf+2;
 	const int fileSize = size-2;
 
 	printf("-|- File thinks its size is: %d bytes\n", fileSize);
-//	dprintf("-|- File thinks its size is: %d bytes\n", fileSize);
 
 	int ret = ParseJFIF(jdata, jinfo, startStream);
-
-
-//	printf("\n ret: %d\n", ret);
 
 	return ret;
 }
@@ -664,69 +570,6 @@ inline void WriteBMP24(const char* szBmpFileName, unsigned int Width, unsigned i
 }
 
 /***************************************************************************/
-//int DecodeJpgFileData(const unsigned char* buf, // Jpg file in memory
-int DecodeJpgFileData(unsigned char* buf, // Jpg file in memory
-					  const int sizeBuf,		// Size jpg in bytes in memory
-//					  unsigned char* rgbpix,	// Output rgb pixels
-					  unsigned char** rgbpix,	// Output rgb pixels
-					  unsigned int* width,		// Output image width
-					  unsigned int* height)		// Output image height
-{
-//	// Allocate memory for our decoded jpg structure, all our data will be
-//	// decompressed and stored in here for the various stages of our jpeg decoding
-//
-//	//	stJpegData jdec[JDEC_SIZE];					///	size
-//	stJpegData* jdec = new stJpegData();
-////	memset(jdec, 0, sizeof(stJpegData));
-////	for (int i=0; i<JDEC_SIZE; i++)
-////	for (int i=0; i<sizeof(stJpegData); i++)
-////	{
-////	}
-//
-//	 printf("jdec size:%d",sizeof(jdec));
-//
-//	if (jdec == NULL)
-//	{
-////		dprintf("Not enough memory to alloc the structure need for decompressing\n");
-//		printf("Not enough memory to alloc the structure need for decompressing\n");
-//		///DBG_HALT;
-//		return 0;
-//	}
-//
-//	// Start Parsing.....reading & storing data
-//	if (JpegParseHeader(jdec, buf, sizeBuf)<0)
-//	{
-////		dprintf("ERROR > parsing jpg header\n");
-//		printf("ERROR > parsing jpg header\n");
-//		///DBG_HALT;
-//	}
-//
-//	// We've read it all in, now start using it, to decompress and create rgb values
-//	printf("Decoding JPEG image...\n");
-////	dprintf("Decoding JPEG image...\n");
-//	JpegDecode(jdec);
-//
-//	// Get the size of the image
-//	JpegGetImageSize(jdec, width, height);
-//
-////	for (int i=0; i<RGB_PIX_SIZE; i++)
-////	{
-//////		rgbpix[i] = jdec->m_rgb[i];
-////		rgbpix[i] = jdec->m_rgb[i];
-////	}
-//	for (int i=0; i<RGB_PIX_SIZE; i++)
-//	{
-//		printf("jdec->m_rgb\t\t%d\n",jdec->m_rgb[i]);
-//		if (jdec->m_rgb[i] == 0)
-//			printf("i\t%d\n",i);
-//	}
-////	*rgbpix = jdec->m_rgb;
-//
-//	// Release the memory for our jpeg decoder structure jdec
-////	delete jdec;
-//
-//	return 1;
-}
 
 /***************************************************************************/
 //
@@ -754,41 +597,28 @@ int ConvertJpgFile(char* szJpgFileInName, char * szBmpFileOutName)
 //	unsigned char *buf;
 
 
+	printf("Try to jpg file: %s\n", szJpgFileInName);
+
 	// Load the Jpeg into memory
 	fp = fopen(szJpgFileInName, "rb");
 	if (fp == NULL)
 	{
-//		dprintf("Cannot open jpg file: %s\n", szJpgFileInName);
 		printf("Cannot open jpg file: %s\n", szJpgFileInName);
-		///DBG_HALT;
 		return 0;
 	}
 
 	lengthOfFile = FileSize(fp);
-//	dprintf("File size is: %s\n", lengthOfFile+1);
 
 
 	printf("File size is: %d\n", lengthOfFile+1);
 
-//	buf = new unsigned char[lengthOfFile + 4];// +4 is safety padding
 
 	unsigned char buf[BUF_SIZE];			///
-//	if (buf == NULL)
-//	{
-//		dprintf("Not enough memory for loading file\n");
-//		///DBG_HALT;
-//		return 0;
-//	}
+
 	fread(buf, lengthOfFile, 1, fp);
 	fclose(fp);
 
 
-
-////	unsigned char rgbpix[RGB_PIX_SIZE];
-//
-////	unsigned char* rgbpix = NULL;
-//	unsigned int width  = 0;
-//	unsigned int height = 0;
 
 /*************** JpegDecode **********************/
 //	unsigned char* buf, // Jpg file in memory
@@ -800,13 +630,7 @@ int ConvertJpgFile(char* szJpgFileInName, char * szBmpFileOutName)
 	// Allocate memory for our decoded jpg structure, all our data will be
 	// decompressed and stored in here for the various stages of our jpeg decoding
 
-	//	stJpegData jdec[JDEC_SIZE];					///	size
 	stJpegData* jdec = new stJpegData();
-//	memset(jdec, 0, sizeof(stJpegData));
-//	for (int i=0; i<JDEC_SIZE; i++)
-//	for (int i=0; i<sizeof(stJpegData); i++)
-//	{
-//	}
 
 	 printf("jdec size\t\t\t:%d",sizeof(jdec));
 
@@ -814,65 +638,34 @@ int ConvertJpgFile(char* szJpgFileInName, char * szBmpFileOutName)
 
 	if (jdec == NULL)
 	{
-//		dprintf("Not enough memory to alloc the structure need for decompressing\n");
 		printf("Not enough memory to alloc the structure need for decompressing\n");
-		///DBG_HALT;
+
 		return 0;
 	}
 
 	// Start Parsing.....reading & storing data
 	if (JpegParseHeader(jdec, jinfo, buf, lengthOfFile)<0)
 	{
-//		dprintf("ERROR > parsing jpg header\n");
 		printf("ERROR > parsing jpg header\n");
-		///DBG_HALT;
 	}
 
 	// We've read it all in, now start using it, to decompress and create rgb values
 	printf("Decoding JPEG image...\n");
-//	dprintf("Decoding JPEG image...\n");
 
-//	JpegDecodeHW(jdec, jinfo->m_height, jinfo->m_width, jdec->m_component_info[cY].m_hFactor, jdec->m_component_info[cY].m_vFactor);
-//	JpegDecodeHW(jdec, jinfo->m_height, jinfo->m_width);
 	JpegDecodeHW(jdec, jinfo->m_height, jinfo->m_width, jinfo->m_hFactor[cY], jinfo->m_vFactor[cY]);
-//	JpegDecode(jdec);
-//	// Get the size of the image
-//	JpegGetImageSize(jdec, &width, &height);
-
-//	for (int i=0; i<RGB_PIX_SIZE; i++)
-//	{
-////		rgbpix[i] = jdec->m_rgb[i];
-//		rgbpix[i] = jdec->m_rgb[i];
-//	}
-//	for (int i=0; i<RGB_PIX_SIZE; i++)
-//	{
-//		printf("jdec->m_rgb\t\t%d\n",jdec->m_rgb[i]);
-//		if (jdec->m_rgb[i] == 0)
-//			printf("i\t%d\n",i);
-//	}
 
 
 	/*************** JpegDecode **********************/
 
-//
-//	DecodeJpgFileData(buf, lengthOfFile, rgbpix, &width, &height);
-////	DecodeJpgFileData(buf, lengthOfFile, &rgbpix, &width, &height);
 
-// printf("rgbpix size:%d\n",sizeof(rgbpix));
 	if (jdec->m_rgb==NULL)
 	{
-//		dprintf("Failed to decode jpg\n");
 		printf("Failed to decode jpg\n");
-		///DBG_HALT;
+
 		return 0;
 	}
-//
-//	// Delete our data we read in from the file
-//	delete[] buf;
 
 	// Save it
-//	WriteBMP24(szBmpFileOutName, width, height, jdec->m_rgb);
-//	WriteBMP24(szBmpFileOutName, jdec->m_width, jdec->m_height, jdec->m_rgb);
 	WriteBMP24(szBmpFileOutName, jinfo->m_width, jinfo->m_height, jdec->m_rgb);
 
 	 printf("rgbpix size:%d\n",sizeof(jdec->m_rgb));
@@ -884,24 +677,6 @@ int ConvertJpgFile(char* szJpgFileInName, char * szBmpFileOutName)
 
 		printf("jdata stream pointer addresss %p\n", jdec->m_Huffman.m_stream+jdec->m_Huffman.stream_index);
 
-//	if (rgbpix==NULL)
-//	{
-////		dprintf("Failed to decode jpg\n");
-//		printf("Failed to decode jpg\n");
-//		///DBG_HALT;
-//		return 0;
-//	}
-////
-////	// Delete our data we read in from the file
-////	delete[] buf;
-//
-//	// Save it
-//	WriteBMP24(szBmpFileOutName, width, height, rgbpix);
-//
-//	 printf("rgbpix size:%d\n",sizeof(rgbpix));
-	// Since we don't need the pixel information anymore, we must
-	// release this as well
-//	delete[] rgbpix;
 
 		delete[] jdec;
 
